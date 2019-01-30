@@ -170,6 +170,14 @@ app.post('/delete', function (req, res) {
         .then(result => res.json(result.rows));
     client.execute(query4, [])
         .then(result => res.json(result.rows));
+
+        session
+            .run("MATCH (ad:Ad {oglas_id:'"+oglas_id+"'}) DELETE ad")
+            .then(data => {
+                res.send(data);
+                session.close();
+                driver.close();
+            });
 });
 
 //-----------------------------------------------INSERT------------------------------------------------
@@ -307,8 +315,8 @@ app.post('/lajkuj-oglas', (req, res) => {
     let datum = req.body.datum;
     let oglas_id = req.body.oglas_id;
     let user_email = req.body.user_email;
-    const id = Uuid.random();
-
+    //const id = Uuid.random();
+    console.log(oglas_id)
 
     const query = "UPDATE oglasi_lajkovani SET kategorija='" + kategorija + "',grupa='" + grupa + "',model='" + model + "',naslov='" + naslov + "',stanje='" + stanje + "',slike=['" + slike + "'],opis='" + opis + "',cena=" + cena + ",datum='" + datum + "',lajkovi=" + lajk + " WHERE user_email='" + user_email + "' and oglas_id=" + oglas_id + ";"
     const query1 = "UPDATE oglasi_korisnika SET kategorija='" + kategorija + "',grupa='" + grupa + "',model='" + model + "',naslov='" + naslov + "',stanje='" + stanje + "',slike=['" + slike + "'],opis='" + opis + "',cena=" + cena + ",datum='" + datum + "',lajkovi=" + lajk + " WHERE user_email='" + user_email + "' and oglas_id=" + oglas_id + ";"
@@ -352,10 +360,15 @@ app.post('/povezani', (req, res) => {
 app.post('/povezani-oglasi', (req, res) => {
     let email = req.body.email;
     session
-        .run("MATCH (:User{email:'"+email+"'})--(a:Ad) RETURN a")
+        .run("MATCH (u:User {email:'"+email+"'})-[:LIKED]->(m)<-[:LIKED]-(relatedUsers),(relatedUsers)-[:LIKED]->(m2) WHERE NOT (u)-[:LIKED]->(m2)   RETURN m2.oglas_id")
         .then(data => {
-            res.send(data);
+            let tmp=[];
+            data.records.forEach(data=>tmp.push(data._fields[0])) 
+            console.log
+            res.send(tmp);
             session.close();
             driver.close();
         });
 });
+
+app.listen(port, () => console.log('Listening port '+port+'!'))
